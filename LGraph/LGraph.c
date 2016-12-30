@@ -98,7 +98,7 @@ int LGraph_AddEdge(LGraph* graph, int v1, int v2, int w)
 {
 	TLGraph * tGraph = (TLGraph *)graph;
 	TListNode *node = NULL;
-	int ret = (graph != NULL) && (0 <= v1&&v1 < tGraph->count) && (0 <= v2&&v2 < tGraph->count);
+	int ret = (tGraph != NULL) && (0 <= v1&&v1 < tGraph->count) && (0 <= v2&&v2 < tGraph->count);
 	ret = ret &&((node = (TListNode *)malloc(sizeof(TListNode))) != NULL);
 	if (ret)
 	{
@@ -111,7 +111,7 @@ int LGraph_AddEdge(LGraph* graph, int v1, int v2, int w)
 int LGraph_RemoveEdge(LGraph* graph, int v1, int v2)
 {
 	TLGraph *tGraph = (TLGraph *)graph;
-	int ok = (graph != NULL) && (0 <= v1&&v1 < tGraph->count) && (0 <= v2&&v2 < tGraph->count);
+	int ok = (tGraph != NULL) && (0 <= v1&&v1 < tGraph->count) && (0 <= v2&&v2 < tGraph->count);
 	int ret = 0;
 	if (ok)
 	{
@@ -134,7 +134,7 @@ int LGraph_RemoveEdge(LGraph* graph, int v1, int v2)
 int LGraph_GetEdge(LGraph* graph, int v1, int v2)
 {
 	TLGraph * tGraph = (TLGraph *)graph;
-	int ok = (graph != NULL) && (0 <= v1&&v1 < tGraph->count) && (0 <= v2&&v2 < tGraph->count);
+	int ok = (tGraph != NULL) && (0 <= v1&&v1 < tGraph->count) && (0 <= v2&&v2 < tGraph->count);
 	int ret = 0;
 	if (ok)
 	{
@@ -155,7 +155,7 @@ int LGraph_GetEdge(LGraph* graph, int v1, int v2)
 int LGraph_TD(LGraph* graph, int v)
 {
 	TLGraph *tGraph = (TLGraph *)graph;
-	int ok = (graph != NULL) && (0 <= v&&v < tGraph->count);
+	int ok = (tGraph != NULL) && (0 <= v&&v < tGraph->count);
 	int ret = 0;
 	if (ok)
 	{
@@ -211,7 +211,7 @@ static void recursive_dfs(TLGraph *tGraph, int v, int visited[], LGraph_Printf *
 		TListNode *node = (TListNode *)LinkList_Get(tGraph->la[v], i);
 		if (!visited[node->v])
 		{
-			recursive_dfs(tGraph, v, visited, pFunc);
+			recursive_dfs(tGraph, node->v, visited, pFunc);
 		}
 	}
 }
@@ -220,12 +220,12 @@ static void bfs(TLGraph *tGraph, int v, int visited[], LGraph_Printf *pFunc)
 	LinkQueue *queue = LinkQueue_Create();
 	if (queue != NULL)
 	{
-		LinkQueue_Append(queue, tGraph->v[v]);
+		LinkQueue_Append(queue, v);
 		visited[v] = 1;
 		while (LinkQueue_Length(queue))
 		{
 			int i = 0;
-			v = (LVertex *)LinkQueue_Retrieve(queue);
+			v = (int)LinkQueue_Retrieve(queue);
 			pFunc(tGraph->v[v]);
 			printf(",");
 			for (i = 0; i < LinkList_Length(tGraph->la[v]); i++)
@@ -233,7 +233,7 @@ static void bfs(TLGraph *tGraph, int v, int visited[], LGraph_Printf *pFunc)
 				TListNode *node = (TListNode *)LinkList_Get(tGraph->la[v], i);
 				if (!visited[node->v])
 				{
-					LinkQueue_Append(queue, tGraph->v[node->v]);
+					LinkQueue_Append(queue, node->v);
 					visited[node->v] = 1;
 				}
 			}
@@ -241,6 +241,76 @@ static void bfs(TLGraph *tGraph, int v, int visited[], LGraph_Printf *pFunc)
 		}
 	}
 }
-void LGraph_DFS(LGraph* graph, int v, LGraph_Printf* pFunc);
-void LGraph_BFS(LGraph* graph, int v, LGraph_Printf* pFunc);
-void LGraph_Display(LGraph* graph, LGraph_Printf* pFunc);
+void LGraph_DFS(LGraph* graph, int v, LGraph_Printf* pFunc)
+{
+	TLGraph *tGraph = (TLGraph *)graph;
+	int ok = (tGraph != NULL) && (0 <= v&&v < tGraph->count);
+	int *visited = NULL;
+	ok = ok && ((visited = (int *)calloc(tGraph->count, sizeof(int)))!= NULL);
+	if (ok)
+	{
+		int i = 0;
+		recursive_dfs(tGraph, v, visited, pFunc);
+		for (i = 0; i < tGraph->count; i++)
+		{
+			if (!visited[i])
+			{
+				recursive_dfs(tGraph, i, visited, pFunc);
+			}
+		}
+		printf("\n");
+	}
+	free(visited);
+}
+void LGraph_BFS(LGraph* graph, int v, LGraph_Printf* pFunc)
+{
+	TLGraph *tGraph = (TLGraph *)graph;
+	int ok = (tGraph != NULL) && (0 <= v&&v < tGraph->count);
+	int *visited = NULL;
+	ok = ok && ((visited = (int *)calloc(tGraph->count, sizeof(int))) != NULL);
+	if (ok)
+	{
+		int i = 0;
+		recursive_dfs(tGraph, v, visited, pFunc);
+		for (i = 0; i < tGraph->count; i++)
+		{
+			if (!visited[i])
+			{
+				bfs(tGraph, i, visited, pFunc);
+			}
+		}
+		printf("\n");
+	}
+	free(visited);
+}
+void LGraph_Display(LGraph* graph, LGraph_Printf* pFunc)
+{
+	TLGraph *tGraph = (TLGraph *)graph;
+	if (tGraph != NULL&&pFunc != NULL)
+	{
+		int i = 0; int j = 0;
+		for (i = 0; i < tGraph->count; i++)
+		{
+			printf("%d:", i);
+			pFunc(tGraph->v[i]);
+			printf(" ");
+		}
+		printf("\n");
+		for (i = 0; i < tGraph->count; i++)
+		{
+			for (j = 0; j < LinkList_Length(tGraph->la[i]); j++)
+			{
+				TListNode* node = (TListNode*)LinkList_Get(tGraph->la[i], j);
+
+				printf("<");
+				pFunc(tGraph->v[i]);
+				printf(", ");
+				pFunc(tGraph->v[node->v]);
+				printf(", %d", node->w);
+				printf(">");
+				printf(" ");
+			}
+		}
+		printf("\n");
+	}
+}
